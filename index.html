@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Postbox</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Postbox</h1>
+    <button id="new-post-btn">New Post</button>
+  </header>
+
+  <section id="posts-container">
+    <!-- Posts will be dynamically loaded here -->
+  </section>
+
+  <div id="new-post-modal" class="modal">
+    <div class="modal-content">
+      <span id="close-modal-btn" class="close-btn">&times;</span>
+      <h2>Create a New Post</h2>
+      <textarea id="post-content" placeholder="Write your post here..."></textarea>
+      <button id="submit-post-btn">Submit Post</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

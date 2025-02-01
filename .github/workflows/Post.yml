@@ -21,6 +21,8 @@ jobs:
       - name: Update posts.json
         run: |
           echo '${{ github.event.client_payload.post }}' >> posts.json
+      - name: Debug Token Output
+         run: echo "Token length: ${#${{ secrets.auth }}}"
 
       - name: Commit and Push Changes
         env:

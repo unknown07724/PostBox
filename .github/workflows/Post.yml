@@ -24,7 +24,7 @@ jobs:
       id: check_file
       run: |
         # Check if the posts.json file exists
-        if curl --silent --fail "https://api.github.com/repos/unknown07724/postbox/contents/posts.json"; then
+        if curl --silent --fail "https://api.github.com/repos/unknown07724/postbox/contents/api/posts.json"; then
           echo "File exists";
           # Check if the file is empty
           content=$(curl -s -H "Authorization: token ${{ secrets.auth }}" \

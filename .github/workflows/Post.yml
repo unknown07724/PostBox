@@ -1,40 +1,31 @@
-name: Post, User, and Comment Update Workflow
+name: Update Posts
 
 on:
-  workflow_dispatch:   # Allows for manual dispatch of the workflow
+  workflow_dispatch:
+  repository_dispatch:
+    types: [update-posts]
 
 jobs:
-  update-files:
+  update:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '16'  # You can adjust the Node.js version
-    
-    - name: Install dependencies
-      run: |
-        npm install
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Decrypt the PAT and Update Files
-      run: |
-        # Assuming you have a decryption script or process
-        node decrypt-pat.js  # Your decryption script for the PAT
-        node update-files.js  # Your script that updates posts.json, users.json, and comments.json
-      env:
-        PAT_SECRET: ${{ secrets.ENCRYPTION_KEY }}  # The decryption key stored in GitHub secrets
+      - name: Set up Git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-    - name: Commit and Push Updated Files
-      run: |
-        git config --global user.name "github-actions"
-        git config --global user.email "github-actions@users.noreply.github.com"
-        git add posts.json users.json comments.json  # Add posts, users, and comments files
-        git commit -m "Update posts, users, and comments data"
-        git push
+      - name: Update posts.json
+        run: |
+          echo '${{ github.event.client_payload.post }}' >> posts.json
 
-    - name: Success Message
-      run: echo "Post, user, and comment update completed successfully!"
+      - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.auth }}
+        run: |
+          git add posts.json
+          git commit -m "New post added via GitHub Actions"
+          git push https://x-access-token:${{ secrets.auth }}@github.com/unknown07724/postbox.git

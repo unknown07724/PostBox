@@ -1,7 +1,7 @@
 name: Update Posts
 
 on:
-  workflow_dispatch:  # Allows manual triggering (or you could trigger it on a push, for example)
+  workflow_dispatch:  # Trigger manually or on specific event
     inputs:
       postData:
         description: 'Post data to update'
@@ -20,18 +20,53 @@ jobs:
       run: |
         echo "Post data: ${{ github.event.inputs.postData }}" > post_data.json
 
-    - name: Update posts.json
+    - name: Check if posts.json exists and is empty
+      id: check_file
       run: |
-        curl -X PUT \
-          -H "Authorization: token ${{ secrets.auth }}" \
-          -H "Content-Type: application/json" \
-          -d '{"message": "Add new post", "content": "$(base64 post_data.json)"}' \
-          https://api.github.com/repos/unknown07724/postbox/contents/data/posts.json
+        # Check if the posts.json file exists
+        if curl --silent --fail "https://api.github.com/repos/unknown07724/postbox/contents/posts.json"; then
+          echo "File exists";
+          # Check if the file is empty
+          content=$(curl -s -H "Authorization: token ${{ secrets.auth }}" \
+            https://raw.githubusercontent.com/unknown07724/postbox/main/posts.json)
+          if [ -z "$content" ]; then
+            echo "File is empty";
+            echo "empty=true" >> $GITHUB_ENV;
+          else
+            echo "File has content";
+            echo "empty=false" >> $GITHUB_ENV;
+          fi
+        else
+          echo "File does not exist";
+          echo "empty=true" >> $GITHUB_ENV;
+        fi
+
+    - name: Update posts.json or create new file
+      run: |
+        if [ "${{ env.empty }}" == "false" ]; then
+          # If file exists and has content, update it
+          curl -X PUT \
+            -H "Authorization: token ${{ secrets.auth }}" \
+            -H "Content-Type: application/json" \
+            -d '{"message": "Add new post", "content": "$(base64 post_data.json)"}' \
+            https://api.github.com/repos/unknown07724/postbox/contents/posts.json
+        else
+          # If file is empty or doesn't exist, create it with the first post
+          echo '{"message": "Create posts.json with the first post", "content": "$(base64 post_data.json)"}' > new_post_data.json
+          curl -X PUT \
+            -H "Authorization: token ${{ secrets.auth }}" \
+            -H "Content-Type: application/json" \
+            -d @new_post_data.json \
+            https://api.github.com/repos/unknown07724/postbox/contents/posts.json
+        fi
 
     - name: Commit and push changes
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add posts.json
+        git commit -m "Update posts.json"
+        git push origin main
+
         git commit -m "Update posts.json"
         git push origin main

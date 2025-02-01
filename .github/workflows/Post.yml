@@ -1,72 +1,40 @@
-name: Update Posts
+name: Post, User, and Comment Update Workflow
 
 on:
-  workflow_dispatch:  # Trigger manually or on specific event
-    inputs:
-      postData:
-        description: 'Post data to update'
-        required: true
-        type: string
+  workflow_dispatch:   # Allows for manual dispatch of the workflow
 
 jobs:
-  update-posts:
+  update-files:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Decode the post data
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'  # You can adjust the Node.js version
+    
+    - name: Install dependencies
       run: |
-        echo "Post data: ${{ github.event.inputs.postData }}" > post_data.json
+        npm install
 
-    - name: Check if posts.json exists and is empty
-      id: check_file
+    - name: Decrypt the PAT and Update Files
       run: |
-        # Check if the posts.json file exists
-        if curl --silent --fail "https://api.github.com/repos/unknown07724/postbox/contents/api/posts.json"; then
-          echo "File exists";
-          # Check if the file is empty
-          content=$(curl -s -H "Authorization: token ${{ secrets.auth }}" \
-            https://raw.githubusercontent.com/unknown07724/postbox/main/posts.json)
-          if [ -z "$content" ]; then
-            echo "File is empty";
-            echo "empty=true" >> $GITHUB_ENV;
-          else
-            echo "File has content";
-            echo "empty=false" >> $GITHUB_ENV;
-          fi
-        else
-          echo "File does not exist";
-          echo "empty=true" >> $GITHUB_ENV;
-        fi
+        # Assuming you have a decryption script or process
+        node decrypt-pat.js  # Your decryption script for the PAT
+        node update-files.js  # Your script that updates posts.json, users.json, and comments.json
+      env:
+        PAT_SECRET: ${{ secrets.ENCRYPTION_KEY }}  # The decryption key stored in GitHub secrets
 
-    - name: Update posts.json or create new file
+    - name: Commit and Push Updated Files
       run: |
-        if [ "${{ env.empty }}" == "false" ]; then
-          # If file exists and has content, update it
-          curl -X PUT \
-            -H "Authorization: token ${{ secrets.auth }}" \
-            -H "Content-Type: application/json" \
-            -d '{"message": "Add new post", "content": "$(base64 post_data.json)"}' \
-            https://api.github.com/repos/unknown07724/postbox/contents/posts.json
-        else
-          # If file is empty or doesn't exist, create it with the first post
-          echo '{"message": "Create posts.json with the first post", "content": "$(base64 post_data.json)"}' > new_post_data.json
-          curl -X PUT \
-            -H "Authorization: token ${{ secrets.auth }}" \
-            -H "Content-Type: application/json" \
-            -d @new_post_data.json \
-            https://api.github.com/repos/unknown07724/postbox/contents/posts.json
-        fi
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@users.noreply.github.com"
+        git add posts.json users.json comments.json  # Add posts, users, and comments files
+        git commit -m "Update posts, users, and comments data"
+        git push
 
-    - name: Commit and push changes
-      run: |
-        git config --global user.name "Postbox API"
-        git config --global user.email "actions@github.com"
-        git add posts.json
-        git commit -m "Update posts.json"
-        git push origin main
-
-        git commit -m "Update posts.json"
-        git push origin main
+    - name: Success Message
+      run: echo "Post, user, and comment update completed successfully!"
